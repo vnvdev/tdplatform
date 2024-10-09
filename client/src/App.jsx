@@ -1,15 +1,14 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
-// import './Login.css'
 import './Login.scss'
 import './Intro.css'
 import { TVChartContainer } from './components/TVChartContainer/index';
-import { version } from './charting_library';
 import ReactModal from 'react-modal';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+const Urlwebsocket = 'https://aztrading.info:8888'
 
 function togglePasswordVisibility() {
 	const passwordInput = document.getElementById('password');
@@ -52,7 +51,7 @@ const App = () => {
 		let toastID = toast.loading('Loggin in...')
 		if(username.length > 0  && password.length > 0){
 			const info = { username: username, password: password };
-			axios.post('https://tvd.xcule.com/signIn/', info)
+			axios.post('https://aztrading.info:8888/signIn/', info)
 				.then(response => {
 					// console.log(response.data)
 					localStorage.setItem('xtoken', response.data.token)
