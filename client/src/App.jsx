@@ -9,7 +9,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const Urlwebsocket = 'https://aztrading.info:8888'
+const Urlwebsocket = 'http://aztrading.info:8888'
 ReactModal.setAppElement('#root');
 
 function togglePasswordVisibility() {
