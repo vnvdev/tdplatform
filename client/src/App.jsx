@@ -67,7 +67,7 @@ const App = () => {
                 <svg xmlnsXlink="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 400">
                     <symbol id="s-text">
                         <text textAnchor="middle" x="50%" y="50%" dy=".35em">
-                            XCULE
+                            KUDZO
                         </text>
                     </symbol>
                     <use xlinkHref="#s-text" className="text"></use>
