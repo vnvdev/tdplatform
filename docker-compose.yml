@@ -1,4 +1,3 @@
-version: '3'
 services:
 
   nodejs:
@@ -10,21 +9,35 @@ services:
       - /app/node_modules
       - ./nodejs:/app
     networks:
-      - letsencrypt-docker-compose
+      - app-network  # Sử dụng mạng mặc định
     ports:
       - ${EXPRESS_PORT}:${EXPRESS_PORT}
       - ${EXPRESS_SOCKET_PORT}:${EXPRESS_SOCKET_PORT}
     environment:
       - MONGO_USER=${MONGODB_USER}
       - MONGO_PASSWORD=${MONGODB_PASSWORD}
-      - MONGO_HOST=${MONGO_DB_HOST}
+      - MONGO_HOST=mongodb  # Tên dịch vụ MongoDB
       - MONGO_PORT=${MONGODB_DOCKER_PORT}
-      - MONGO_SERVER=${MONGO_DB_SERVER}
+      - MONGO_SERVER=mongodb
       - MONGO_DATABASE=${MONGO_DB_NAME}
       - EXPRESS_PORT=${EXPRESS_PORT}
       - EXPRESS_SOCKET_PORT=${EXPRESS_SOCKET_PORT}
     depends_on:
       - mongodb
+
+  client:
+    stdin_open: true
+    build:
+      dockerfile: Dockerfile
+      context: ./client
+    ports:
+      - ${REACT_PORT}:${REACT_PORT}
+    environment:
+      - EXPRESS_PORT=${EXPRESS_PORT}
+      - EXPRESS_SOCKET_PORT=${EXPRESS_SOCKET_PORT}
+    volumes:
+      - /app/node_modules
+      - ./client:/app
 
   flask:
     build:
@@ -33,57 +46,48 @@ services:
     volumes:
       - ./flask:/flask
     networks:
-      - letsencrypt-docker-compose
+      - app-network  # Sử dụng mạng mặc định
     environment:
       - FLASK_PORT=${FLASK_PORT}
       - FLASK_HOST=${FLASK_HOST}
-      - REACT_APP_SERVER_URL=${MONGO_DB_HOST}:${EXPRESS_PORT}
+      - REACT_APP_SERVER_URL=mongodb:${EXPRESS_PORT}
     ports:
       - ${FLASK_PORT}:${FLASK_PORT}
 
-  # client:
-  #   stdin_open: true
-  #   build:
-  #     dockerfile: Dockerfile
-  #     context: ./client
-  #   ports:
-  #     - ${REACT_PORT}:${REACT_PORT}
-  #   environment:
-  #     - EXPRESS_PORT=${EXPRESS_PORT}
-  #     - EXPRESS_SOCKET_PORT=${EXPRESS_SOCKET_PORT}
-  #   volumes:
-  #     - /app/node_modules
-  #     - ./client:/app
-
   mongodb:
     image: mongo
+    container_name: mongodb
     ports:
-      - ${MONGODB_DOCKER_PORT}:${MONGODB_DOCKER_PORT}
+      - ${MONGODB_DOCKER_PORT}:27017
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
     volumes:
       - db:/data/db
+    networks:
+      - app-network  # Sử dụng mạng mặc định
 
   mongo-express:
     image: mongo-express
+    container_name: mongo-express
     restart: always
-    ports:
-      - ${MONGO_EXPRESS_PORT}:${MONGO_EXPRESS_PORT}
     depends_on:
-        - mongodb
+      - mongodb
+    ports:
+      - ${MONGO_EXPRESS_PORT}:8081
     environment:
-      - ME_CONFIG_MONGO_DB_ADMINUSERNAME=${MONGODB_USER}
-      - ME_CONFIG_MONGO_DB_ADMINPASSWORD=${MONGODB_PASSWORD}
-      - ME_CONFIG_MONGO_DB_SERVER=${MONGO_DB_SERVER}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGODB_USER}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_PASSWORD}
+      - ME_CONFIG_MONGODB_SERVER=mongodb
       - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER}
       - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD}
-      - ME_CONFIG_MONGODB_URL="${MONGO_DB_SERVER}://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGO_DB_HOST}:${MONGODB_DOCKER_PORT}"
+      - ME_CONFIG_MONGODB_URL="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}"
+    networks:
+      - app-network  # Sử dụng mạng mặc định
 
 volumes:
   db:
 
 networks:
-  letsencrypt-docker-compose:
-    name: letsencrypt-docker-compose_default
-    external: true
+  app-network:
+    driver: bridge  # Sử dụng mạng 'bridge' của Docker
