@@ -17,21 +17,8 @@ function getLanguageFromURL() {
 
 let buttonReplayMode
 
-const supportedResolutions = [
-	"1",
-	"3",
-	"5",
-	"15",
-	"30",
-	"45",
-	"1H",
-	"2H",
-	"3H",
-	"4H",
-	"1D",
-	"1W",
-	"1M"
-];
+const supportedResolutions = ['1', '3', '5', '15', '30', '60', '120', '180', '240', '1D', '1W', '1M'];
+const Urlwebsocket = 'https://aztrading.info:8888'
 
 export const TVChartContainer = () => {
 	const chartContainerRef = useRef()
@@ -64,10 +51,10 @@ export const TVChartContainer = () => {
 		interval: '15',
 		datafeed: DataFeed,
 		libraryPath: '/charting_library/',
-		chartsStorageUrl: 'https://saveload.xcule.com',
-		chartsStorageApiVersion: '1.1',
-		clientId: 'xcule.com',
-		userId: `${localStorage.getItem('userID')}`,
+		charts_storage_url: 'https://saveload.tradingview.com',
+		charts_storage_api_version: '1.1',
+		client_id: 'tradingview.com',
+		user_id: 'public_user_id',
 		fullscreen: true,
 		autosize: true,
 		enabled_features: ['countdown', 'study_templates', 'pre_post_market_sessions', 'tick_resolution', 'seconds_resolution', 'move_logo_to_main_pane', 'high_density_bars', 'seconds_resolution', 'use_localstorage_for_settings', 'chart_template_storage'],
@@ -455,7 +442,7 @@ export const TVChartContainer = () => {
 				items: [
 					{
 						title:'🐞 Report a Bug',
-						onSelect: ()=> window.location = 'mailto:support@xcule.com'
+						onSelect: ()=> window.location = 'mailto:support@aztrading.info'
 					},
 					{
 						title: '👋 Logout',
@@ -607,7 +594,7 @@ export const TVChartContainer = () => {
 		let toastID = toast.loading('Loading QML Values...')
 		// console.log("TO CANDLE TIME: ", toTime)
 
-		axios.get(`https://tvd.xcule.com/getQML/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
+		axios.get(`${Urlwebsocket}/getQML/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
 			.then(function (response) {
 				// handle success
 				// console.log("QML VALUES", response.data)
@@ -656,7 +643,7 @@ export const TVChartContainer = () => {
 		let toastID = toast.loading('Loading DFXT Values...')
 		// console.log("GET DFXT DATA: ")
 
-		axios.get(`https://tvd.xcule.com/getDFXT/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
+		axios.get(`${Urlwebsocket}/getDFXT/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
 			.then(function (response) {
 				// handle success
 				// console.log("DFXT VALUES", response.data)
@@ -796,7 +783,7 @@ export const TVChartContainer = () => {
 		let toastID = toast.loading("Loading FVG Values...");
 		// console.log("TO CANDLE TIME: ", toTime)
 
-		axios.get(`https://tvd.xcule.com/getFVG/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
+		axios.get(`${Urlwebsocket}/getFVG/?symbol=${symbol}&tf=${interval}&barCount=${totalBars}&to=${toTime}`)
 			.then(function (response) {
 				// handle success
 				// console.log("FVG VALUES", response.data)
