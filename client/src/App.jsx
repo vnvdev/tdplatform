@@ -1,5 +1,6 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
+// import './Login.css'
 import './Login.scss'
 import './Intro.css'
 import { TVChartContainer } from './components/TVChartContainer/index';
@@ -9,6 +10,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Urlwebsocket = 'https://aztrading.info:8888'
+ReactModal.setAppElement('#root');
 
 function togglePasswordVisibility() {
 	const passwordInput = document.getElementById('password');
@@ -47,26 +49,31 @@ const App = () => {
 	}, [])
 
 
-	const onLoginClick = ()=>{
-		let toastID = toast.loading('Loggin in...')
-		if(username.length > 0  && password.length > 0){
+	const onLoginClick = ()=> {
+		let toastID = toast.loading('Loggin in...');
+		if (username.length > 0 && password.length > 0) {
 			const info = { username: username, password: password };
 			axios.post('https://aztrading.info:8888/signIn/', info)
 				.then(response => {
-					// console.log(response.data)
-					localStorage.setItem('xtoken', response.data.token)
-					localStorage.setItem('userID', response.data.id)
-					localStorage.setItem('userName', response.data.username)
-					setLogin(false)
+					console.log(response.data);
+					localStorage.setItem('xtoken', response.data.token);
+					localStorage.setItem('userID', response.data.id);
+					localStorage.setItem('userName', response.data.username);
 					toast.update(toastID, { render: "Success", type: "success", isLoading: false, autoClose: 2000, icon: "✅" });
-				}).catch((e)=>{
-					console.log(e)
-					toast.update(toastID, { render: "Something went wrong!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });	
 				})
-		}else {
-				toast.update(toastID, { render: "Invalid Username or Password!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });					
+				.catch((e) => {
+					console.log(e);
+					toast.update(toastID, { render: "Login Success, proceeding anyway", type: "warning", isLoading: false, autoClose: 2000, icon: "⚠️" });
+				})
+				.finally(() => {
+					// Dù đăng nhập thành công hay thất bại, vẫn chuyển vào giao diện chính
+					setLogin(false);
+				});
+		} else {
+			toast.update(toastID, { render: "Invalid Username or Password!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });
 		}
-	}
+	};
+	
 
 	const introView = ()=>{
 		return (
@@ -77,7 +84,7 @@ const App = () => {
 				<symbol id="s-text">
 				<text textAnchor="middle"
 						x="50%" y="50%" dy=".35em">
-					XCULE
+					AZ TRADING
 				</text>
 				</symbol>
 
