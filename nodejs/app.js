@@ -51,7 +51,7 @@ const socketChart = {};
 
 // Basic route
 app.get('/', function (req, res) {
-  res.send("AZTRADING DATA SERVER IS RUNNING");
+  res.send("XCULE DATA SERVER IS RUNNING");
 });
 
 // Socket connection handling
@@ -166,7 +166,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
   
   
-  app.post("/signIn", cors(corsOptions), jsonParser, async (req, res) => {
+app.post("/signIn", cors(corsOptions), jsonParser, async (req, res) => {
     const { username, password } = req.body;
   
     try {
@@ -223,7 +223,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
     }
   });
   
-  const signIn = async (username, password, res) => {
+const signIn = async (username, password, res) => {
     try {
       const user = await User.findOne({ username });
   
@@ -255,7 +255,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   };
   
   
-  app.get('/login', cors(corsOptions), authJWT, async function (req, res) {
+app.get('/login', cors(corsOptions), authJWT, async function (req, res) {
     const usr = 'tugoftrades'
     const pwd = 'toc__123#'
     console.log(usr, pwd);
@@ -270,7 +270,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
     });
   });
   
-  app.get('/getBars/', cors(corsOptions), function (req, res) {
+app.get('/getBars/', cors(corsOptions), function (req, res) {
     const client = new TradingView.Client(); // Creates a websocket client
     const chart = new client.Session.Chart(); // Init a Chart session
     symbol = req.query.symbol.toString()
@@ -319,7 +319,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
   
   
-  app.get('/getReplayBars/', cors(corsOptions), function (req, res) {
+app.get('/getReplayBars/', cors(corsOptions), function (req, res) {
     const client = new TradingView.Client(); // Creates a websocket client
     const chart = new client.Session.Chart(); // Init a Chart session
     chart.setTimezone('Asia/Kolkata')
@@ -350,7 +350,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
     
   
-  app.get('/searchSymbol/', cors(corsOptions), function (req, res) {
+app.get('/searchSymbol/', cors(corsOptions), function (req, res) {
     const client = new TradingView.Client(); // Creates a websocket client
     const chart = new client.Session.Chart(); // Init a Chart session
     searchKey = req.query.searchKey.toString()
@@ -370,7 +370,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
   
   
-  app.get('/resolveSymbol/', cors(corsOptions), function (req, res) {
+app.get('/resolveSymbol/', cors(corsOptions), function (req, res) {
     const client = new TradingView.Client(); // Creates a websocket client
     const chart = new client.Session.Chart(); // Init a Chart session
     symbol = req.query.symbol.toString()
@@ -391,7 +391,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   
   
   
-  app.get('/searchIndicator/', cors(corsOptions), function (req, res) {
+app.get('/searchIndicator/', cors(corsOptions), function (req, res) {
   
     //const client = new TradingView.Client(); // Creates a websocket client
     //const chart = new client.Session.Chart(); // Init a Chart session
@@ -406,7 +406,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   
   
   
-  app.get('/getFVG/', cors(corsOptions), function (req, res) {
+app.get('/getFVG/', cors(corsOptions), function (req, res) {
     symbol = req.query.symbol.toString();
     tf = req.query.tf.toString();
     barCount = parseInt(req.query.barCount);
@@ -448,7 +448,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
   
   
-  app.get('/getQML/', cors(corsOptions), function (req, res) {
+app.get('/getQML/', cors(corsOptions), function (req, res) {
     const symbol = req.query.symbol.toString();
     const tf = req.query.tf.toString();
     const barCount = parseInt(req.query.barCount);
@@ -483,7 +483,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
     });
   });
   
-  app.get('/getDFXT/', cors(corsOptions), function (req, res) {
+app.get('/getDFXT/', cors(corsOptions), function (req, res) {
     const symbol = req.query.symbol.toString();
     const tf = req.query.tf.toString();
     const barCount = parseInt(req.query.barCount);
@@ -523,5 +523,5 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
   });
   
   
-  server.listen(() => console.log('WebSocket listening at', 8888));
-  app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8000));
+server.listen(() => console.log('WebSocket listening at', 8888));
+app.listen(8888, console.log("Http server listening at", 8888));
