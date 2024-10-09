@@ -53,7 +53,7 @@ const App = () => {
 		let toastID = toast.loading('Loggin in...');
 		if (username.length > 0 && password.length > 0) {
 			const info = { username: username, password: password };
-			axios.post('https://aztrading.info:8888/signIn/', info)
+			axios.post('http://aztrading.info:8888/signIn/', info)
 				.then(response => {
 					console.log(response.data);
 					localStorage.setItem('xtoken', response.data.token);
