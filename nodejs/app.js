@@ -524,4 +524,5 @@ app.get('/getDFXT/', cors(corsOptions), function (req, res) {
   
   
 server.listen(() => console.log('WebSocket listening at', 8888));
-app.listen(8080, console.log("Http server listening at", 8888));
+app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8080));
+console.log(process.env.PORT);
