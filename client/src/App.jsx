@@ -8,7 +8,6 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const Urlwebsocket = 'https://aztrading.info:8888';
 ReactModal.setAppElement('#root');
 
 function togglePasswordVisibility() {
@@ -42,7 +41,7 @@ const App = () => {
         let toastID = toast.loading('Logging in...');
         if (username.length > 0 && password.length > 0) {
             const info = { username, password };
-            axios.post('https://aztrading.info:8888/signIn/', info)
+            axios.post('http://aztrading.info:8888/signIn/', info)
                 .then(response => {
                     console.log(response.data);
                     localStorage.setItem('xtoken', response.data.token);
