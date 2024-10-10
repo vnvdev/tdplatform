@@ -18,7 +18,7 @@ function getLanguageFromURL() {
 let buttonReplayMode
 
 const supportedResolutions = ['1', '3', '5', '15', '30', '60', '120', '180', '240', '1D', '1W', '1M'];
-const Urlwebsocket = 'https://data.aztrading.info'
+const Urlwebsocket = 'http://aztrading.info:8080'
 
 export const TVChartContainer = () => {
 	const chartContainerRef = useRef()
