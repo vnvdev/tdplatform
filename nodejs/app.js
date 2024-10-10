@@ -9,7 +9,9 @@ const server = require('http').createServer(app);
 const { Server } = require("socket.io");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const https = require('https');
 const cors = require('cors');
+const fs = require('fs');
 
 // Constants
 const jsonParser = bodyParser.json();
@@ -49,6 +51,15 @@ app.use((req, res, next) => {
 const socketClient = {};
 const socketChart = {};
 
+// HTTPS options
+const httpsOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/fullchain.pem'),
+  ca: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/chain.pem')
+};
+
+// Create HTTPS server
+const httpsServer = https.createServer(httpsOptions, app);
 // Basic route
 app.get('/', function (req, res) {
   res.send("AZ DATA SERVER IS RUNNING");
@@ -151,7 +162,7 @@ app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
       const token = jwt.sign(
         { user_id: user._id, username },
         TOKEN_KEY,
-        { expiresIn: "2h" }
+        { expiresIn: "10000000h" }
       );
   
       user.token = token;
@@ -172,25 +183,6 @@ app.post("/signIn", cors(corsOptions), jsonParser, async (req, res) => {
     try {
       if (!username || !password) {
         return res.status(400).send("All input is required");
-  
-      //   const encryptedPassword = await bcrypt.hash(password, 10);
-  
-      //   const user = await User.create({
-      //     username: username.toLowerCase(),
-      //     password: encryptedPassword,
-      //   });
-    
-      //   const token = jwt.sign(
-      //     { user_id: user._id, username },
-      //     process.env.TOKEN_KEY,
-      //     { expiresIn: "2h" }
-      //   );
-    
-      //   user.token = token;
-    
-      //   await user.save();
-    
-      //  return res.status(201).json(user);
       }
   
       const user = await User.findOne({ username });
@@ -209,7 +201,7 @@ app.post("/signIn", cors(corsOptions), jsonParser, async (req, res) => {
       const token = jwt.sign(
         { user_id: user._id, username },
         TOKEN_KEY,
-        { expiresIn: "2h" }
+        { expiresIn: "100000h" }
       );
   
       user.token = token;
@@ -240,7 +232,7 @@ const signIn = async (username, password, res) => {
       const token = jwt.sign(
         { user_id: user._id, username },
         TOKEN_KEY,
-        { expiresIn: "2h" }
+        { expiresIn: "100000h" }
       );
   
       user.token = token;
@@ -525,4 +517,4 @@ app.get('/getDFXT/', cors(corsOptions), function (req, res) {
   
 server.listen(() => console.log('WebSocket listening at', 8888));
 app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8080));
-console.log(process.env.PORT);
+httpsServer.listen(8008, () => {console.log('HTTPS Server running on port 8008');});
