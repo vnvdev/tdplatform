@@ -17,7 +17,7 @@ function getNextDailyBarTime(barTime) {
 const socket = io(`https://aztrading.info:8888`,{});
 
 socket.on('connect', (sockett) => {
-    // console.log('[socket] Connected', socket.id);
+    console.log('[socket] Connected', socket.id);
     socketID = socket.id
 });
 
