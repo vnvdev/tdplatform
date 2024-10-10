@@ -43,9 +43,9 @@ const socketChart = {};
 
 // HTTPS options
 const httpsOptions = {
-  key: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/fullchain.pem'),
-  ca: fs.readFileSync('/etc/letsencrypt/live/aztrading.info/chain.pem')
+  key: fs.readFileSync('./certs/privkey.pem'),
+  cert: fs.readFileSync('./certs/fullchain.pem'),
+  ca: fs.readFileSync('./certs/chain.pem')
 };
 
 // Create HTTPS server
