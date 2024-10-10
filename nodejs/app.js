@@ -46,12 +46,7 @@ app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
 
 // Socket.IO setup with CORS
 const io = new Server(8888, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST"],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }
+  cors: corsOptions // Sử dụng cùng một cấu hình CORS cho cả Express và Socket.IO
 });
 
 // Debug middleware (optional, remove in production)
