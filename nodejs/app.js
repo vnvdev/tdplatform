@@ -61,7 +61,7 @@ const socketChart = {};
 
 // Basic route
 app.get('/', function (req, res) {
-  res.send("XCULE DATA SERVER IS RUNNING");
+  res.send("AZ TRADING DATA SERVER IS RUNNING");
 });
 
 // Socket connection handling
