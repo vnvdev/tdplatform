@@ -16,7 +16,6 @@ const fs = require('fs');
 // Constants
 const jsonParser = bodyParser.json();
 const TOKEN_KEY = process.env.TOKEN_KEY || '1234567890';
-const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 // CORS Configuration
 const corsOptions = {
@@ -48,11 +47,8 @@ const httpsOptions = {
   ca: fs.readFileSync('./chain.pem')
 };
 
-// Create HTTPS server
-const httpsServer = https.createServer(httpsOptions, app);
-// Basic route
-// THÊM đoạn này:
-const server = https.createServer(httpsOptions);
+const server = https.createServer(httpsOptions, app);
+
 
 const io = new Server(server, {
   cors: {
@@ -387,8 +383,6 @@ app.get('/resolveSymbol/', cors(corsOptions), function (req, res) {
   
 app.get('/searchIndicator/', cors(corsOptions), function (req, res) {
   
-    //const client = new TradingView.Client(); // Creates a websocket client
-    //const chart = new client.Session.Chart(); // Init a Chart session
   
     searchterm = req.query.symbol.toString()
   
@@ -517,5 +511,5 @@ app.get('/getDFXT/', cors(corsOptions), function (req, res) {
   });
   
 server.listen(8888, () => console.log('Secure WebSocket server listening on port 8888'));
-app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8080));
-httpsServer.listen(8008, () => {console.log('HTTPS Server running on port 8008');});
+const httpsServer = https.createServer(httpsOptions, app);
+httpsServer.listen(8080, () => console.log('HTTPS server listening on port 8080'));
