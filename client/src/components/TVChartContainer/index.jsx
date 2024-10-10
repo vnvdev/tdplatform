@@ -370,7 +370,7 @@ export const TVChartContainer = () => {
 				]
 			})
 
-			buttonReplayMode = tvWidget.createButton();
+			const buttonReplayMode = tvWidget.createButton();
 			buttonReplayMode.setAttribute('id', 'navbar-replay-button');
 			buttonReplayMode.innerHTML = `<span  class="navbar-replay-icon-container"><img class="replay-icon" src="/assets/replay.svg">Replay</span>`;
 			buttonReplayMode.addEventListener('click', async function () {
