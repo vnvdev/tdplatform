@@ -41,7 +41,7 @@ const App = () => {
         let toastID = toast.loading('Logging in...');
         if (username.length > 0 && password.length > 0) {
             const info = { username, password };
-            axios.post('http://aztrading.info:8080/signIn/', info)
+            axios.post('http://aztrading.info:8888/signIn/', info)
                 .then(response => {
                     console.log(response.data);
                     localStorage.setItem('xtoken', response.data.token);
@@ -67,7 +67,7 @@ const App = () => {
                 <svg xmlnsXlink="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 400">
                     <symbol id="s-text">
                         <text textAnchor="middle" x="50%" y="50%" dy=".35em">
-                            KUDZO
+                            XCULE
                         </text>
                     </symbol>
                     <use xlinkHref="#s-text" className="text"></use>
@@ -134,8 +134,8 @@ const App = () => {
                 </>}
                 <div id="my-div">
                     <button data-text="Awesome" className="button">
-                        <span className="actual-text">&nbsp;XC&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <span className="hover-text" aria-hidden="true">&nbsp;xcule&nbsp;</span>
+                        <span className="actual-text">&nbsp;AZ&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span className="hover-text" aria-hidden="true">&nbsp;AZ TRADING&nbsp;</span>
                     </button>
                 </div>
             </div>
