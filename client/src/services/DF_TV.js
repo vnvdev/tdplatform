@@ -22,7 +22,7 @@ let historyBars = [];
 let replayBackBars = [];
 let intervalID;
 // let pendingReplayBarsToGo = [];
-const Urlwebsocket = 'https://aztrading.info:8080'
+const Urlwebsocket = 'https://data.aztrading.info'
 export default {
     // get a configuration of your datafeed (e.g. supported resolutions, exchanges and so on)
     dataFeedCallBack,
