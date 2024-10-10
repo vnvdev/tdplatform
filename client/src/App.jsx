@@ -52,7 +52,7 @@ const App = () => {
                 })
                 .catch(e => {
                     console.log(e);
-                    toast.update(toastID, { render: "Login failed! Proceeding anyway.", type: "warning", isLoading: false, autoClose: 2000, icon: "⚠️" });
+                    toast.update(toastID, { render: "Login failed! User/Pasword not arsit....", type: "warning", isLoading: false, autoClose: 2000, icon: "⚠️" });
                 })
         } else {
             toast.update(toastID, { render: "Invalid Username or Password!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });
@@ -132,8 +132,8 @@ const App = () => {
                 </>}
                 <div id="my-div">
                     <button data-text="Awesome" className="button">
-                        <span className="actual-text">&nbsp;KZ&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <span className="hover-text" aria-hidden="true">&nbsp;KUDZO VU&nbsp;</span>
+                        <span className="actual-text">&nbsp;XC&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span className="hover-text" aria-hidden="true">&nbsp;xcule&nbsp;</span>
                     </button>
                 </div>
             </div>
