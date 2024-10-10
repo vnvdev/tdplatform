@@ -37,26 +37,27 @@ const App = () => {
         }, 3000);
     }, []);
 
-	const onLoginClick = ()=>{
-		let toastID = toast.loading('Loggin in...')
-		if(username.length > 0  && password.length > 0){
-			const info = { username: username, password: password };
-			axios.post('https://aztrading.info:8080/signIn/', info)
-				.then(response => {
-					// console.log(response.data)
-					localStorage.setItem('xtoken', response.data.token)
-					localStorage.setItem('userID', response.data.id)
-					localStorage.setItem('userName', response.data.username)
-					setLogin(false)
-					toast.update(toastID, { render: "Success", type: "success", isLoading: false, autoClose: 2000, icon: "✅" });
-				}).catch((e)=>{
-					console.log(e)
-					toast.update(toastID, { render: "Something went wrong!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });	
-				})
-		}else {
-				toast.update(toastID, { render: "Invalid Username or Password!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });					
-		}
-	}
+    const onLoginClick = () => {
+        let toastID = toast.loading('Logging in...');
+        if (username.length > 0 && password.length > 0) {
+            const info = { username, password };
+            axios.post('http://aztrading.info:8080/signIn/', info)
+                .then(response => {
+                    console.log(response.data);
+                    localStorage.setItem('xtoken', response.data.token);
+                    localStorage.setItem('userID', response.data.id);
+                    localStorage.setItem('userName', response.data.username);
+                    toast.update(toastID, { render: "Success", type: "success", isLoading: false, autoClose: 2000, icon: "✅" });
+		    setLogin(false);
+                })
+                .catch(e => {
+                    console.log(e);
+                    toast.update(toastID, { render: "Login failed! Proceeding anyway.", type: "warning", isLoading: false, autoClose: 2000, icon: "⚠️" });
+                })
+        } else {
+            toast.update(toastID, { render: "Invalid Username or Password!", type: "error", isLoading: false, autoClose: 2000, icon: "❌" });
+        }
+    };
 
     const introView = () => {
         return (
@@ -131,8 +132,8 @@ const App = () => {
                 </>}
                 <div id="my-div">
                     <button data-text="Awesome" className="button">
-                        <span className="actual-text">&nbsp;AZ&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <span className="hover-text" aria-hidden="true">&nbsp;AZ TRADING&nbsp;</span>
+                        <span className="actual-text">&nbsp;XC&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span className="hover-text" aria-hidden="true">&nbsp;xcule&nbsp;</span>
                     </button>
                 </div>
             </div>
