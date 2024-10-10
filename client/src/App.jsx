@@ -132,8 +132,8 @@ const App = () => {
                 </>}
                 <div id="my-div">
                     <button data-text="Awesome" className="button">
-                        <span className="actual-text">&nbsp;XC&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <span className="hover-text" aria-hidden="true">&nbsp;xcule&nbsp;</span>
+                        <span className="actual-text">&nbsp;KZ&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span className="hover-text" aria-hidden="true">&nbsp;KUDZO VU&nbsp;</span>
                     </button>
                 </div>
             </div>
