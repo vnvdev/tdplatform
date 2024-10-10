@@ -5,7 +5,7 @@ require("./config/database").connect();
 const authJWT = require("./middleware/auth");
 const bodyParser = require('body-parser');
 const TradingView = require('@mathieuc/tradingview');
-const server = require('http').createServer(app);
+// const server = require('http').createServer(app);
 const { Server } = require("socket.io");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -31,16 +31,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
 
-// Socket.IO setup with CORS
-const io = new Server(8888, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST"],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }
-});
-
 // Debug middleware (optional, remove in production)
 app.use((req, res, next) => {
   console.log('HTTP Request Origin:', req.get('origin'));
@@ -61,6 +51,18 @@ const httpsOptions = {
 // Create HTTPS server
 const httpsServer = https.createServer(httpsOptions, app);
 // Basic route
+// THÊM đoạn này:
+const server = https.createServer(httpsOptions);
+
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }
+});
+
 app.get('/', function (req, res) {
   res.send("AZ DATA SERVER IS RUNNING");
 });
@@ -514,7 +516,6 @@ app.get('/getDFXT/', cors(corsOptions), function (req, res) {
     });
   });
   
-  
-server.listen(() => console.log('WebSocket listening at', 8888));
+server.listen(8888, () => console.log('Secure WebSocket server listening on port 8888'));
 app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8080));
 httpsServer.listen(8008, () => {console.log('HTTPS Server running on port 8008');});
