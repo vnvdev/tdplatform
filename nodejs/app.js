@@ -43,9 +43,9 @@ const socketChart = {};
 
 // HTTPS options
 const httpsOptions = {
-  key: fs.readFileSync('./certs/privkey.pem'),
-  cert: fs.readFileSync('./certs/fullchain.pem'),
-  ca: fs.readFileSync('./certs/chain.pem')
+  key: fs.readFileSync('./privkey.pem'),
+  cert: fs.readFileSync('./fullchain.pem'),
+  ca: fs.readFileSync('./chain.pem')
 };
 
 // Create HTTPS server
