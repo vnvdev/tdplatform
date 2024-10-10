@@ -3,18 +3,20 @@ const app = express();
 require("dotenv").config();
 require("./config/database").connect();
 const authJWT = require("./middleware/auth");
-var bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 const TradingView = require('@mathieuc/tradingview');
 const server = require('http').createServer(app);
 const { Server } = require("socket.io");
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-var jsonParser = bodyParser.json()
-const TOKEN_KEY = '1234567890';
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
-// Cấu hình CORS
+// Constants
+const jsonParser = bodyParser.json();
+const TOKEN_KEY = process.env.TOKEN_KEY || '1234567890';
+const urlencodedParser = bodyParser.urlencoded({ extended: false });
+
+
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
@@ -33,24 +35,41 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 };
 
-app.use(cors(corsOptions));
 
-// Cấu hình cho Socket.IO
+// Apply CORS to Express
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Socket.IO setup with CORS
 const io = new Server(8888, {
-  cors: corsOptions
+  cors: {
+    origin: true,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }
 });
 
-app.get('/', function (req, res){
-  res.send("AZTRADING DATA SERVER IS RUNNING")
-})
+// Debug middleware (optional, remove in production)
+app.use((req, res, next) => {
+  console.log('HTTP Request Origin:', req.get('origin'));
+  next();
+});
 
-// CODEBASE 1X =============================================== START
+// Constants for socket handling
 const socketClient = {};
 const socketChart = {};
 
+// Basic route
+app.get('/', function (req, res) {
+  res.send("XCULE DATA SERVER IS RUNNING");
+});
+
+// Socket connection handling
 io.sockets.on('connection', (socket) => {
   console.log("Socket Client Connected On Server", socket.id);
 
@@ -80,13 +99,31 @@ io.sockets.on('connection', (socket) => {
     console.error("USER LEFT DUE TO AN ERROR", error);
   });
 
-  socket.on('disconnect', function (data) {
+  socket.on('disconnect', function() {
     socket.leave();
     console.log("USER LEFT & DISCONNECTED");
   });
 });
 
-const getLiveFeedData = ({data, socket}, callback) => {
+// User Model
+const User = require("./model/user");
+
+function newClientSessionInit(data) {
+  socketClient[data.uid] = new TradingView.Client();
+  socketChart[data.uid] = new socketClient[data.uid].Session.Chart();
+  socketChart[data.uid].setTimezone('Asia/Kolkata');
+}
+
+function exitRoomIfNoUser(data) {
+  io.of("/").in(data.uid).fetchSockets().then(sks => {
+    if (!sks.length) {
+      console.log("NO USERS & CLOSING THE ROOM", data.uid);
+      socketClient[data.uid].end();
+    }
+  });
+}
+
+function getLiveFeedData({data, socket}, callback) {
   const symbol = data.ticker;
   let tf = data.tf;
   if (['1D', '1W', '1M'].includes(data.tf)) {
@@ -104,401 +141,403 @@ const getLiveFeedData = ({data, socket}, callback) => {
   });
 }
 
-const newClientSessionInit = (data) => {
-  socketClient[data.uid] = new TradingView.Client();
-  socketChart[data.uid] = new socketClient[data.uid].Session.Chart();
-  socketChart[data.uid].setTimezone('Asia/Kolkata');
-}
-
-const exitRoomIfNoUser = (data) => {
-  io.of("/").in(data.uid).fetchSockets().then(sks => {
-    if (!sks.length) {
-      console.log("NO USERS & CLOSING THE ROOM", data.uid);
-      socketClient[data.uid].end();
-    }
-  });
-}
-
-
-const User = require("./model/user");
-app.post("/createBetaUser", jsonParser, async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    if (!username || !password) {
-      return res.status(400).send("All input is required");
-    }
-
-    const userExists = await User.exists({ username });
-
-    if (userExists) {
-      signIn(username, password, res);
-      return;
-    }
-
-    const encryptedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      username: username.toLowerCase(),
-      password: encryptedPassword,
-    });
-
-    const token = jwt.sign(
-      { user_id: user._id, username },
-      TOKEN_KEY,
-      { expiresIn: "10000h" }
-    );
-
-    user.token = token;
-
-    await user.save();
-
-    res.status(201).json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error creating beta user");
-  }
-});
-
-
-app.post("/signIn", jsonParser, async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    if (!username || !password) {
-      return res.status(400).send("All input is required");
-
-    }
-
-    const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.status(404).send("User not found");
-
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).send("Invalid credentials");
-    }
-
-    const token = jwt.sign(
-      { user_id: user._id, username },
-      TOKEN_KEY,
-      { expiresIn: "2h" }
-    );
-
-    user.token = token;
-
-    await user.save();
-
-    res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error signing in user");
-  }
-});
-
-const signIn = async (username, password, res) => {
-  try {
-    const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.status(400).send("Invalid Credentials");
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(400).send("Invalid Credentials");
-    }
-
-    const token = jwt.sign(
-      { user_id: user._id, username },
-      TOKEN_KEY,
-      { expiresIn: "2h" }
-    );
-
-    user.token = token;
-
-    await user.save();
-
-    res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error signing in user");
-  }
-};
-
-
-app.get('/login', authJWT, async function (req, res) {
-  const usr = 'tugoftrades'
-  const pwd = 'toc__123#'
-  console.log(usr, pwd);
-  if (!usr) throw Error('Please specify your username/email');
-  if (!pwd) throw Error('Please specify your password');
-  await TradingView.loginUser(usr.toString(), pwd.toString(), true).then((user) => {
-    console.log('USER Sessionid:', user.session);
-    res.send(user)
-  }).catch((err) => {
-    console.error('Login error:', err.message);
-    return res.send(err.message)
-  });
-});
-
-app.get('/getBars/', function (req, res) {
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  symbol = req.query.symbol.toString()
-  tf = req.query.tf.toString()
-  range = parseInt(req.query.range)
-  to = JSON.parse(req.query.to)
+app.post("/createBetaUser", cors(corsOptions), jsonParser, async (req, res) => {
+    const { username, password } = req.body;
   
-  chart.setMarket(symbol, { // Set the market
-    timeframe:tf,
-    range: range,
-    to: to,
-  });
-  
-  chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
-    console.log(`GET BARS FOR Market "${chart.infos, tf}" loaded !`);
-  });
-  
-  chart.onUpdate(async () => { // When price changes
-    if (!chart.periods[0]) return;
-    var periods = Object.values(chart.periods);
-    let diff, lastCTime;
-
-    if(chart.periods.length < range){
-      for (let i = 0; i <= (range - chart.periods.length) ; i++){
-        diff = periods[periods.length - 2].time - periods[periods.length - 1].time;
-        lastCTime = periods[periods.length - 1].time;
-        const elm = {"time": lastCTime - diff, "open": periods[periods.length - 1].open, "max": periods[periods.length - 1].max, "min": periods[periods.length - 1].min, "close": periods[periods.length - 1].close, "volume": periods[periods.length - 1].volume};
-        periods.push(elm);
+    try {
+      if (!username || !password) {
+        return res.status(400).send("All input is required");
       }
-      periods.pop();
-      console.log("=====>", periods.length);
-      res.send(periods);
-      client.end();
-      return;
-    } else {
-      console.log("TOTAL SEND PACKETS: ", chart.periods.length);
-      res.send(periods);
-      client.end();
+  
+      const userExists = await User.exists({ username });
+  
+      if (userExists) {
+        signIn(username, password, res);
+        return;
+      }
+  
+      const encryptedPassword = await bcrypt.hash(password, 10);
+  
+      const user = await User.create({
+        username: username.toLowerCase(),
+        password: encryptedPassword,
+      });
+  
+      const token = jwt.sign(
+        { user_id: user._id, username },
+        TOKEN_KEY,
+        { expiresIn: "2h" }
+      );
+  
+      user.token = token;
+  
+      await user.save();
+  
+      res.status(201).json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error creating beta user");
     }
   });
   
-  chart.onError((...err) => { // Listen for errors (can avoid crash)
-    console.log("Chart error: ===================>", ...err);
-    res.send(err.message);
-  });
-});
-
-
-app.get('/getReplayBars/', function (req, res) {
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  chart.setTimezone('Asia/Kolkata')
-  symbol = req.query.symbol.toString()
-  tf = req.query.tf.toString()
-  range = parseInt(req.query.range)
-  to = JSON.parse(req.query.to)
-  console.log(symbol, tf, to, range)
-  chart.setMarket(symbol, { // Set the market
-    timeframe:tf,
-    range: -range,
-    to: to,
-  });
-  chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
-    console.log(`GET BARS FOR Market "${chart.infos, tf}" loaded !`);
-  });
-  chart.onUpdate(async () => { // When price changes
-    if (!chart.periods[0]) return;
-      console.log("TOTAL SEND PACKETS: ", chart.periods.length)
-      res.send(chart.periods.reverse())
-      client.end()
-  });
-  chart.onError((...err) => { // Listen for errors (can avoid crash)
-    console.error("Chart error: ===================>", ...err)
-    res.status(500).send(err.message)
-    client.end()
-  });
-});
   
-
-app.get('/searchSymbol/', function (req, res) {
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  searchKey = req.query.searchKey.toString()
-  console.log(searchKey)
-  TradingView.searchMarket(searchKey).then((rs) => {
-    console.log('Found Markets:', rs);
-    res.send(rs);
-    client.end();
-  })
-
-  chart.onError((...err) => { // Listen for errors (can avoid crash)
-    console.error("Chart error: ===================>", ...err)
-    res.status(500).send(err.message)
-    client.end()
+app.post("/signIn", cors(corsOptions), jsonParser, async (req, res) => {
+    const { username, password } = req.body;
+  
+    try {
+      if (!username || !password) {
+        return res.status(400).send("All input is required");
+  
+      //   const encryptedPassword = await bcrypt.hash(password, 10);
+  
+      //   const user = await User.create({
+      //     username: username.toLowerCase(),
+      //     password: encryptedPassword,
+      //   });
+    
+      //   const token = jwt.sign(
+      //     { user_id: user._id, username },
+      //     process.env.TOKEN_KEY,
+      //     { expiresIn: "2h" }
+      //   );
+    
+      //   user.token = token;
+    
+      //   await user.save();
+    
+      //  return res.status(201).json(user);
+      }
+  
+      const user = await User.findOne({ username });
+  
+      if (!user) {
+        return res.status(404).send("User not found");
+  
+      }
+  
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+  
+      if (!isPasswordValid) {
+        return res.status(401).send("Invalid credentials");
+      }
+  
+      const token = jwt.sign(
+        { user_id: user._id, username },
+        TOKEN_KEY,
+        { expiresIn: "2h" }
+      );
+  
+      user.token = token;
+  
+      await user.save();
+  
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error signing in user");
+    }
   });
-
-});
-
-
-app.get('/resolveSymbol/', function (req, res) {
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  symbol = req.query.symbol.toString()
-  chart.setMarket(symbol, {
-    timeframe:'D'
+  
+const signIn = async (username, password, res) => {
+    try {
+      const user = await User.findOne({ username });
+  
+      if (!user) {
+        return res.status(400).send("Invalid Credentials");
+      }
+  
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+  
+      if (!isPasswordValid) {
+        return res.status(400).send("Invalid Credentials");
+      }
+  
+      const token = jwt.sign(
+        { user_id: user._id, username },
+        TOKEN_KEY,
+        { expiresIn: "2h" }
+      );
+  
+      user.token = token;
+  
+      await user.save();
+  
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error signing in user");
+    }
+  };
+  
+  
+app.get('/login', cors(corsOptions), authJWT, async function (req, res) {
+    const usr = 'tugoftrades'
+    const pwd = 'toc__123#'
+    console.log(usr, pwd);
+    if (!usr) throw Error('Please specify your username/email');
+    if (!pwd) throw Error('Please specify your password');
+    await TradingView.loginUser(usr.toString(), pwd.toString(), true).then((user) => {
+      console.log('USER Sessionid:', user.session);
+      res.send(user)
+    }).catch((err) => {
+      console.error('Login error:', err.message);
+      return res.send(err.message)
+    });
   });
-  chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
-    console.log(`Market "${symbol}" loaded ! RESOLVE & SENDING SYMBOL INFO`);
-    res.send(chart.infos)
-    client.end()
-  })
-  chart.onError((...err) => { // Listen for errors (can avoid crash)
-    console.error("Chart error: ===================>", ...err)
-    res.status(500).send(err.message)
-    client.end()
+  
+app.get('/getBars/', cors(corsOptions), function (req, res) {
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    symbol = req.query.symbol.toString()
+    tf = req.query.tf.toString()
+    range = parseInt(req.query.range)
+    to = JSON.parse(req.query.to)
+    
+    chart.setMarket(symbol, { // Set the market
+      timeframe:tf,
+      range: range,
+      to: to,
+    });
+    
+    chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
+      console.log(`GET BARS FOR Market "${chart.infos, tf}" loaded !`);
+    });
+    
+    chart.onUpdate(async () => { // When price changes
+      if (!chart.periods[0]) return;
+      var periods = Object.values(chart.periods);
+      let diff, lastCTime;
+  
+      if(chart.periods.length < range){
+        for (let i = 0; i <= (range - chart.periods.length) ; i++){
+          diff = periods[periods.length - 2].time - periods[periods.length - 1].time;
+          lastCTime = periods[periods.length - 1].time;
+          const elm = {"time": lastCTime - diff, "open": periods[periods.length - 1].open, "max": periods[periods.length - 1].max, "min": periods[periods.length - 1].min, "close": periods[periods.length - 1].close, "volume": periods[periods.length - 1].volume};
+          periods.push(elm);
+        }
+        periods.pop();
+        console.log("=====>", periods.length);
+        res.send(periods);
+        client.end();
+        return;
+      } else {
+        console.log("TOTAL SEND PACKETS: ", chart.periods.length);
+        res.send(periods);
+        client.end();
+      }
+    });
+    
+    chart.onError((...err) => { // Listen for errors (can avoid crash)
+      console.log("Chart error: ===================>", ...err);
+      res.send(err.message);
+    });
   });
-});
-
-
-
-app.get('/searchIndicator/', function (req, res) {
-
-  //const client = new TradingView.Client(); // Creates a websocket client
-  //const chart = new client.Session.Chart(); // Init a Chart session
-
-  searchterm = req.query.symbol.toString()
-
-  TradingView.searchIndicator(searchterm).then((rs) => {
-    console.log('Found Indicators:', rs);
-    res.send(rs);
+  
+  
+app.get('/getReplayBars/', cors(corsOptions), function (req, res) {
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    chart.setTimezone('Asia/Kolkata')
+    symbol = req.query.symbol.toString()
+    tf = req.query.tf.toString()
+    range = parseInt(req.query.range)
+    to = JSON.parse(req.query.to)
+    console.log(symbol, tf, to, range)
+    chart.setMarket(symbol, { // Set the market
+      timeframe:tf,
+      range: -range,
+      to: to,
+    });
+    chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
+      console.log(`GET BARS FOR Market "${chart.infos, tf}" loaded !`);
+    });
+    chart.onUpdate(async () => { // When price changes
+      if (!chart.periods[0]) return;
+        console.log("TOTAL SEND PACKETS: ", chart.periods.length)
+        res.send(chart.periods.reverse())
+        client.end()
+    });
+    chart.onError((...err) => { // Listen for errors (can avoid crash)
+      console.error("Chart error: ===================>", ...err)
+      res.status(500).send(err.message)
+      client.end()
+    });
   });
-});
-
-
-
-app.get('/getFVG/', function (req, res) {
-  symbol = req.query.symbol.toString();
-  tf = req.query.tf.toString();
-  barCount = parseInt(req.query.barCount);
-  toTime = parseInt(req.query.to);
-  console.log("FVG CALL", symbol, tf);
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  chart.setMarket(symbol, {
-    timeframe: tf,
-    range: 10000,
-    to: toTime
+    
+  
+app.get('/searchSymbol/', cors(corsOptions), function (req, res) {
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    searchKey = req.query.searchKey.toString()
+    console.log(searchKey)
+    TradingView.searchMarket(searchKey).then((rs) => {
+      console.log('Found Markets:', rs);
+      res.send(rs);
+      client.end();
+    })
+  
+    chart.onError((...err) => { // Listen for errors (can avoid crash)
+      console.error("Chart error: ===================>", ...err)
+      res.status(500).send(err.message)
+      client.end()
+    });
+  
   });
-  chart.onError((...err) => {
-    console.log('CHART error:', ...err);
-    res.send(...err);
+  
+  
+app.get('/resolveSymbol/', cors(corsOptions), function (req, res) {
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    symbol = req.query.symbol.toString()
+    chart.setMarket(symbol, {
+      timeframe:'D'
+    });
+    chart.onSymbolLoaded(() => { // When the symbol is successfully loaded
+      console.log(`Market "${symbol}" loaded ! RESOLVE & SENDING SYMBOL INFO`);
+      res.send(chart.infos)
+      client.end()
+    })
+    chart.onError((...err) => { // Listen for errors (can avoid crash)
+      console.error("Chart error: ===================>", ...err)
+      res.status(500).send(err.message)
+      client.end()
+    });
   });
-  TradingView.getIndicator('PUB;JnCafhpmkXatAEM8sXHV9dPJ12whp0at', 'last').then((indic) => {
-    indic.setOption(20, 1000);
-    const FVG = new chart.Study(indic);
-    FVG.onError((...err) => {
-      console.log('Study error:', ...err);
+  
+  
+  
+app.get('/searchIndicator/', cors(corsOptions), function (req, res) {
+  
+    //const client = new TradingView.Client(); // Creates a websocket client
+    //const chart = new client.Session.Chart(); // Init a Chart session
+  
+    searchterm = req.query.symbol.toString()
+  
+    TradingView.searchIndicator(searchterm).then((rs) => {
+      console.log('Found Indicators:', rs);
+      res.send(rs);
+    });
+  });
+  
+  
+  
+app.get('/getFVG/', cors(corsOptions), function (req, res) {
+    symbol = req.query.symbol.toString();
+    tf = req.query.tf.toString();
+    barCount = parseInt(req.query.barCount);
+    toTime = parseInt(req.query.to);
+    console.log("FVG CALL", symbol, tf);
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    chart.setMarket(symbol, {
+      timeframe: tf,
+      range: 10000,
+      to: toTime
+    });
+    chart.onError((...err) => {
+      console.log('CHART error:', ...err);
       res.send(...err);
     });
-    FVG.onReady(() => {
-      console.log(`STD '${JSON.stringify(FVG.instance)}' Loaded !`);
+    TradingView.getIndicator('PUB;JnCafhpmkXatAEM8sXHV9dPJ12whp0at', 'last').then((indic) => {
+      indic.setOption(20, 1000);
+      const FVG = new chart.Study(indic);
+      FVG.onError((...err) => {
+        console.log('Study error:', ...err);
+        res.send(...err);
+      });
+      FVG.onReady(() => {
+        console.log(`STD '${JSON.stringify(FVG.instance)}' Loaded !`);
+      });
+      FVG.onUpdate((v) => {
+        if (!v[0]) return;
+        res.send(FVG.graphic);
+        client.end();
+        console.log('Graphic data:', FVG.graphic.boxes.length, FVG.graphic.boxes[0].id, FVG.graphic.boxes[FVG.graphic.boxes.length-1].id, v);
+      });
+    })
+    chart.onError((...err) => { // Listen for errors (can avoid crash)
+      console.error("Chart error: ===================>", ...err)
+      res.status(500).send(err.message)
+      client.end()
     });
-    FVG.onUpdate((v) => {
-      if (!v[0]) return;
-      res.send(FVG.graphic);
+  });
+  
+  
+app.get('/getQML/', cors(corsOptions), function (req, res) {
+    const symbol = req.query.symbol.toString();
+    const tf = req.query.tf.toString();
+    const barCount = parseInt(req.query.barCount);
+    const toTime = parseInt(req.query.to);
+    console.log("QML CALL", symbol, tf);
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    chart.setMarket(symbol, {
+      timeframe: tf,
+      range: 10000,
+      to: toTime
+    });
+    TradingView.getIndicator('PUB;c44be7dc7f704e5080ca4b4d53e21119', 'last').then((indic) => {
+      indic.setOption(0, 5);
+      const QML = new chart.Study(indic);
+      QML.onReady(() => {
+        console.log(`STD '${JSON.stringify(QML.instance)}' Loaded !`);
+      });
+      QML.onUpdate((v) => {
+        if (!v[0]) return;
+        res.send(QML.graphic)
+        client.end()
+        console.log('Graphic data:', QML.graphic);
+      });
+    }).catch((err)=>{
+      res.send(err.message)
       client.end();
-      console.log('Graphic data:', FVG.graphic.boxes.length, FVG.graphic.boxes[0].id, FVG.graphic.boxes[FVG.graphic.boxes.length-1].id, v);
     });
-  })
-  chart.onError((...err) => { // Listen for errors (can avoid crash)
-    console.error("Chart error: ===================>", ...err)
-    res.status(500).send(err.message)
-    client.end()
-  });
-});
-
-
-app.get('/getQML/', function (req, res) {
-  const symbol = req.query.symbol.toString();
-  const tf = req.query.tf.toString();
-  const barCount = parseInt(req.query.barCount);
-  const toTime = parseInt(req.query.to);
-  console.log("QML CALL", symbol, tf);
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  chart.setMarket(symbol, {
-    timeframe: tf,
-    range: 10000,
-    to: toTime
-  });
-  TradingView.getIndicator('PUB;c44be7dc7f704e5080ca4b4d53e21119', 'last').then((indic) => {
-    indic.setOption(0, 5);
-    const QML = new chart.Study(indic);
-    QML.onReady(() => {
-      console.log(`STD '${JSON.stringify(QML.instance)}' Loaded !`);
-    });
-    QML.onUpdate((v) => {
-      if (!v[0]) return;
-      res.send(QML.graphic)
-      client.end()
-      console.log('Graphic data:', QML.graphic);
-    });
-  }).catch((err)=>{
-    res.send(err.message)
-    client.end();
-  });
-  chart.onError((...err) => {
-    console.log('CHART error:', ...err);
-    res.send(...err)
-  });
-});
-
-app.get('/getDFXT/', function (req, res) {
-  const symbol = req.query.symbol.toString();
-  const tf = req.query.tf.toString();
-  const barCount = parseInt(req.query.barCount);
-  const toTime = parseInt(req.query.to);
-  console.log("DFXT CALL", symbol, tf);
-  const client = new TradingView.Client(); // Creates a websocket client
-  const chart = new client.Session.Chart(); // Init a Chart session
-  chart.setMarket(symbol, {
-    timeframe: tf,
-    range: 10000,
-    to: toTime
-  });
-  TradingView.getIndicator('PUB;83e1f1ebd7644c08a746acfc4261e8cb', 'last').then((indic) => {
-    // indic.setOption(0, 5);
-    const DFXT = new chart.Study(indic);
-    DFXT.onReady(() => {
-      console.log(`DFXT' Loaded !`);
-    });
-    DFXT.onUpdate((v) => {
-      if (!v[0]) return;
-      console.log('Graphic data:', DFXT.graphic.length);
-      res.send(DFXT.graphic)
-      client.end()
-    });
-    DFXT.onError((...err) => {
-      console.log('Study error:', ...err);
+    chart.onError((...err) => {
+      console.log('CHART error:', ...err);
       res.send(...err)
     });
-  }).catch((err)=>{
-    res.send(err.message)
-    client.end();
   });
-  chart.onError((...err) => {
-    console.log('CHART error:', ...err);
-    res.send(...err)
+  
+app.get('/getDFXT/', cors(corsOptions), function (req, res) {
+    const symbol = req.query.symbol.toString();
+    const tf = req.query.tf.toString();
+    const barCount = parseInt(req.query.barCount);
+    const toTime = parseInt(req.query.to);
+    console.log("DFXT CALL", symbol, tf);
+    const client = new TradingView.Client(); // Creates a websocket client
+    const chart = new client.Session.Chart(); // Init a Chart session
+    chart.setMarket(symbol, {
+      timeframe: tf,
+      range: 10000,
+      to: toTime
+    });
+    TradingView.getIndicator('PUB;83e1f1ebd7644c08a746acfc4261e8cb', 'last').then((indic) => {
+      // indic.setOption(0, 5);
+      const DFXT = new chart.Study(indic);
+      DFXT.onReady(() => {
+        console.log(`DFXT' Loaded !`);
+      });
+      DFXT.onUpdate((v) => {
+        if (!v[0]) return;
+        console.log('Graphic data:', DFXT.graphic.length);
+        res.send(DFXT.graphic)
+        client.end()
+      });
+      DFXT.onError((...err) => {
+        console.log('Study error:', ...err);
+        res.send(...err)
+      });
+    }).catch((err)=>{
+      res.send(err.message)
+      client.end();
+    });
+    chart.onError((...err) => {
+      console.log('CHART error:', ...err);
+      res.send(...err)
+    });
   });
-});
-
-
-server.listen(8888, () => console.log('WebSocket listening at', 8888));
-app.listen(process.env.PORT || 8080, () => console.log("Http server listening at", process.env.PORT || 8080));
+  
+  
+server.listen(() => console.log('WebSocket listening at', 8888));
+app.listen(process.env.PORT || 8080, console.log("Http server listening at", 8080));
+console.log(process.env.PORT);
