@@ -14,7 +14,7 @@ function getNextDailyBarTime(barTime) {
     return date.getTime() / 1000;
 }
 
-const socket = io(`https://aztrading.info:8888`,{});
+const socket = io(`http://aztrading.info:8888`,{});
 
 socket.on('connect', (sockett) => {
     console.log('[socket] Connected', socket.id);
