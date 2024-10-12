@@ -18,6 +18,7 @@ const socket = io(`http://aztrading.info:8888`,{});
 
 socket.on('connect', (sockett) => {
     console.log('[socket] Connected', socket.id);
+    console.log('[socket] Kết nối được rồi nè', socket.id);
     socketID = socket.id
 });
 
